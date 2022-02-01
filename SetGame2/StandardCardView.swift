@@ -18,70 +18,85 @@ struct StandardCardView: View {
 
     var body: some View {
         card
-//            .padding(1)
-            .cardify(faceColor: faceColor)
-//            .padding(2)
-        
+            .cardify(faceColor: faceColor, isFaceUp: card.state == .inPlay)
+            .padding(Style.shapeLineWidth)
     }
 }
 
-struct StandardCardView_Previews: PreviewProvider {
-    static var previews: some View {
-        VStack {
-            StandardCardView(card: SetCard(id: 1))
-            StandardCardView(card: SetCard(id: 32))
-            StandardCardView(card: SetCard(id: 60))
-            StandardCardView(card: SetCard(id: 66))
-
-            StandardCardView(card: SetCard(id: 75))
-
-            StandardCardView(card: SetCard(id: 77))
-        }
-    }
-}
-
+// MARK: -- Card draws itself
 extension SetCard : View {
+    
     var number: Int { t3 }
     var shape: Int { t2 }
-    var fill: Int { t1 }
-    var baseColor: Color { Style.colors[t0] }
-    
-    var fillColor: Color {
-        switch fill {
-        case 2: return baseColor
-        case 1: return baseColor.opacity(0.4)
-        default: return Color("shapeBackground")
+    var baseColor: Color { Style.colors[t1] }
+    var fillStyle: FillStyle {
+        switch t0 {
+        case 2: return .color(baseColor)
+        case 1: return .linearGradient(baseColor.stripes)
+        default: return .color(Color("shapeBackground"))
         }
     }
     
     var body: some View {
         GeometryReader { geometry in
-            HStack {
-//                Spacer()
-                VStack {
-                    ForEach(0..<number + 1) { _ in
-                        Group {
-                            if fill == 1 {
-                                switch (shape) {
-                                case 2: OvalView(fill: baseColor.stripes, stroke: baseColor)
-                                case 1: TildeView(fill: baseColor.stripes, stroke: baseColor)
-                                default: DiamondView(fill: baseColor.stripes, stroke: baseColor)
-                                }
-                            } else {
-                                switch (shape) {
-                                case 2: OvalView(fill: fillColor, stroke: baseColor)
-                                case 1: TildeView(fill: fillColor, stroke: baseColor)
-                                default: DiamondView(fill: fillColor, stroke: baseColor)
-                                }
-                            }
-                        }
-                        .frame(maxWidth: geometry.size.height / 3.0 / Style.cardAspectRatio)
-                    }
+            VStack(spacing: 2) {
+                Spacer(minLength: 2)
+                ForEach(0..<number + 1) { _ in
+                    shapeView
+                        .frame(maxWidth: geometry.size.height / 3 / Style.cardAspectRatio)
                 }
-                .padding(.vertical, 4)
-//                Spacer()
+                Spacer(minLength: 2)
             }
+            .padding(.vertical, 2)
             .frame(maxWidth: .infinity)
+        }
+    }
+    
+    @ViewBuilder
+    var shapeView: some View {
+        // TODO: how to write something more like, (shape: [diamond, tilde, oval][shape],..)
+        switch shape {
+        case 2: ColoredShapeView(shape: oval, color: baseColor, fill: fillStyle)
+        case 1: ColoredShapeView(shape: tilde, color: baseColor, fill: fillStyle)
+        default: ColoredShapeView(shape: diamond, color: baseColor, fill: fillStyle)
+        }
+    }
+}
+
+struct StandardCardView_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            VStack {
+                HStack {
+                    StandardCardView(card: SetCard(id: 1))
+                    StandardCardView(card: SetCard(id: 32))
+                    StandardCardView(card: SetCard(id: 60))
+                    StandardCardView(card: SetCard(id: 79))
+                    StandardCardView(card: SetCard(id: 75))
+                    StandardCardView(card: SetCard(id: 77))
+                }
+                HStack {
+                StandardCardView(card: SetCard(id: 55))
+                StandardCardView(card: SetCard(id: 34))
+                StandardCardView(card: SetCard(id: 81))
+                }
+            }
+            .preferredColorScheme(.dark)
+            VStack {
+                HStack {
+                    StandardCardView(card: SetCard(id: 1))
+                    StandardCardView(card: SetCard(id: 32))
+                    StandardCardView(card: SetCard(id: 60))
+                    StandardCardView(card: SetCard(id: 79))
+                    StandardCardView(card: SetCard(id: 75))
+                    StandardCardView(card: SetCard(id: 77))
+                }
+                HStack {
+                    StandardCardView(card: SetCard(id: 55))
+                    StandardCardView(card: SetCard(id: 34))
+                    StandardCardView(card: SetCard(id: 81))
+                }
+            }
         }
     }
 }

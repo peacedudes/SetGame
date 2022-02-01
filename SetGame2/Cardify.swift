@@ -9,50 +9,60 @@ import SwiftUI
 
 struct Cardify: AnimatableModifier {
     var faceColor: Color
-    var cornerRaidus = CGFloat(4)
+    var isFaceUp: Bool {
+        didSet {
+            // TODO: Maybe this isn't needed
+            rotation = isFaceUp ? 0 : 180
+        }
+    }
+    var cornerRaidus = CGFloat(6)
     var lineWidth = Style.shapeLineWidth
-
-    var rotation: Double = 0.0 // degrees
-
+    
+    // CS193P trick; use 3d rotation for face up/down transitions
+    var rotation: Double // degrees
     var animatableData : Double {
         get { rotation }
         set { rotation = newValue }
     }
     
+    init(faceColor: Color, isFaceUp: Bool) {
+        self.faceColor = faceColor
+        self.isFaceUp = isFaceUp
+        rotation = isFaceUp ? 0 : 180
+    }
+    
     func body(content: Content) -> some View {
         ZStack {
             let shape = RoundedRectangle(cornerRadius: cornerRaidus)
-            if rotation <  90 {
+            if rotation < 90 {
                 shape.foregroundColor(faceColor)
-                shape.strokeBorder(lineWidth: lineWidth)
             } else {
-                shape.fill(.green)
-//                switch theme.back {
-//                case .color(let color): shape.fill(color)
-//                case .linear(let linearGradient): shape.fill(linearGradient)
-//                }
+                Image("setBack")
+                    .resizable()
+                    .clipShape(shape)
             }
-            content
-                .opacity(rotation < 90 ? 1 : 0)
+            shape.strokeBorder(lineWidth: lineWidth)
+            content.opacity(rotation < 90 ? 1 : 0)
         }
-        .rotation3DEffect(Angle.degrees(rotation),
-                          axis: (x: 0, y: 1, z: 0))
+        .aspectRatio(Style.cardAspectRatio, contentMode: .fit)
+        .rotation3DEffect(Angle.degrees(rotation), axis: (x: 0, y: 1, z: 0))
     }
 }
 
 
 extension View {
-    func cardify(faceColor: Color = Color("faceColor")) -> some View {
-        modifier(Cardify(faceColor: faceColor))
+    func cardify(faceColor: Color = Color("faceColor"),
+                 isFaceUp: Bool = true) -> some View {
+        modifier(Cardify(faceColor: faceColor, isFaceUp: isFaceUp))
     }
 }
 
-
-
 struct Cardify_Previews: PreviewProvider {
     static var previews: some View {
-        Text("boo!")
-            .cardify()
-            .padding(40)
+        VStack {
+            Text("boo!").cardify()
+            Text("boo2!") .cardify(isFaceUp: false)
+        }
+        .padding(40)
     }
 }

@@ -12,7 +12,7 @@ struct SetGame2App: App {
     var body: some Scene {
         let game = StandardSetGame()
         WindowGroup {
-            SetGameView(game: game)
+            StandardSetGameView(game: game)
         }
     }
 }

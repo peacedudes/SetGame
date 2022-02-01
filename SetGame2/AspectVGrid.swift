@@ -127,7 +127,6 @@ struct AspectVGrid_Previews: PreviewProvider {
             $0 .padding(1)
         }
         .padding()
-        Spacer(minLength: 0)
     }
 
     struct SampleView: View, Identifiable {
