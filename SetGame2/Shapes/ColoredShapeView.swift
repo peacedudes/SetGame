@@ -19,7 +19,7 @@ struct ColoredShapeView<S: Shape>: View {
     
     var body: some View {
         GeometryReader { geometry in
-            let goldenBounds = geometry.size.phiSized
+            let goldenBounds = geometry.size.aspectSized
             Group {
                 switch fill {
                 case .color(let fillColor):

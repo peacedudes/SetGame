@@ -10,11 +10,11 @@ import AVFoundation
 
 
 struct Voice {
-    // TODO: Make language or voices choosable?
-    
+    // TODO: Make language or voices choosable or localizable
     /// The preferred local voices available for speech synthesis
     static let local = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.prefix(3) == "en-" }
-    // a named v
+
+    // a named voice, if it exists
     static func named(_ name: String) -> AVSpeechSynthesisVoice? {
         local.first { $0.name.lowercased() == name.lowercased() }
     }
@@ -23,7 +23,7 @@ struct Voice {
 
 extension String {
     
-    func speak(voice: AVSpeechSynthesisVoice? = Voice.local.randomElement(), rate: Float = 0.66) {
+    func speak(voice: AVSpeechSynthesisVoice? = Voice.local.randomElement(), rate: Float = 0.64) {
         DispatchQueue.global(qos: .background).async {
             let utterance = AVSpeechUtterance(string: self)
             utterance.voice = voice
@@ -76,8 +76,8 @@ extension SetGame {
                 "huh-uh",
                 "I thought you had it",
                 "I'm sorry, No.",
-                "In concievable",
                 "Inconcievable",
+                "It's hard, isn't it?",
                 "Keep trying",
                 "nice try",
                 "no",
@@ -109,8 +109,7 @@ extension SetGame {
         let result = outcome
         if result == .none {
             return hasPlayableMatch([]) ? nil :
-            nextUndealtCard == nil ? "the game is over" :
-            "This could be difficult..."
+            nextUndealtCard == nil ? "the game is over" : "This could be difficult..."
         }
         return responses[outcome]?.randomElement()
     }

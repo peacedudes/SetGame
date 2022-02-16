@@ -1,5 +1,5 @@
 //
-//  StandardCardView.swift
+//  StdCardView.swift
 //  SetGame2
 //
 //  Created by robert on 12/5/21.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct StandardCardView: View {
+struct StdCardView: View {
     let card: SetCard
     let faceColor: Color
 
@@ -18,14 +18,14 @@ struct StandardCardView: View {
 
     var body: some View {
         card
-            .cardify(faceColor: faceColor, isFaceUp: card.state == .inPlay)
+            .cardify(faceColor: faceColor, isFaceUp: card.isFaceUp)
             .padding(Style.shapeLineWidth)
+        
     }
 }
 
-// MARK: -- Card draws itself
+// MARK: -- Make Card draw itself
 extension SetCard : View {
-    
     var number: Int { t3 }
     var shape: Int { t2 }
     var baseColor: Color { Style.colors[t1] }
@@ -37,6 +37,16 @@ extension SetCard : View {
         }
     }
     
+    var t0Name: String { ["open", "striped", "solid"][t0] }
+    var t1Name: String { ["green", "blue", "red"][t1] }
+    var t2Name: String { ["diamond", "squiggle", "oval"][t2] + (t3 > 0 ? "s" : "") }
+    var t3Name: String { ["single", "pair", "triplet"][t3] }
+    
+    var cardName: String { ["\(t3 + 1)", t0Name, t1Name, t2Name].joined(separator: " ") }
+
+    
+//    var isInPile: Bool { state != .inPlay }
+
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 2) {
@@ -49,12 +59,13 @@ extension SetCard : View {
             }
             .padding(.vertical, 2)
             .frame(maxWidth: .infinity)
+
         }
     }
     
     @ViewBuilder
     var shapeView: some View {
-        // TODO: how to write something more like, (shape: [diamond, tilde, oval][shape],..)
+        // TODO: find something more like [diamond, tilde, oval][shape]
         switch shape {
         case 2: ColoredShapeView(shape: oval, color: baseColor, fill: fillStyle)
         case 1: ColoredShapeView(shape: tilde, color: baseColor, fill: fillStyle)
@@ -68,33 +79,33 @@ struct StandardCardView_Previews: PreviewProvider {
         Group {
             VStack {
                 HStack {
-                    StandardCardView(card: SetCard(id: 1))
-                    StandardCardView(card: SetCard(id: 32))
-                    StandardCardView(card: SetCard(id: 60))
-                    StandardCardView(card: SetCard(id: 79))
-                    StandardCardView(card: SetCard(id: 75))
-                    StandardCardView(card: SetCard(id: 77))
+                    StdCardView(card: SetCard(id: 1))
+                    StdCardView(card: SetCard(id: 32, isFaceUp: true))
+                    StdCardView(card: SetCard(id: 60, isFaceUp: true))
+                    StdCardView(card: SetCard(id: 79, isFaceUp: true))
+                    StdCardView(card: SetCard(id: 75, isFaceUp: true))
+                    StdCardView(card: SetCard(id: 77))
                 }
                 HStack {
-                StandardCardView(card: SetCard(id: 55))
-                StandardCardView(card: SetCard(id: 34))
-                StandardCardView(card: SetCard(id: 81))
+                    StdCardView(card: SetCard(id: 55, isFaceUp: true))
+                    StdCardView(card: SetCard(id: 34))
+                    StdCardView(card: SetCard(id: 81, isFaceUp: true))
                 }
             }
             .preferredColorScheme(.dark)
             VStack {
                 HStack {
-                    StandardCardView(card: SetCard(id: 1))
-                    StandardCardView(card: SetCard(id: 32))
-                    StandardCardView(card: SetCard(id: 60))
-                    StandardCardView(card: SetCard(id: 79))
-                    StandardCardView(card: SetCard(id: 75))
-                    StandardCardView(card: SetCard(id: 77))
+                    StdCardView(card: SetCard(id: 1))
+                    StdCardView(card: SetCard(id: 32, isFaceUp: true))
+                    StdCardView(card: SetCard(id: 60, isFaceUp: true))
+                    StdCardView(card: SetCard(id: 79, isFaceUp: true))
+                    StdCardView(card: SetCard(id: 75, isFaceUp: true))
+                    StdCardView(card: SetCard(id: 77))
                 }
                 HStack {
-                    StandardCardView(card: SetCard(id: 55))
-                    StandardCardView(card: SetCard(id: 34))
-                    StandardCardView(card: SetCard(id: 81))
+                    StdCardView(card: SetCard(id: 55, isFaceUp: true))
+                    StdCardView(card: SetCard(id: 34))
+                    StdCardView(card: SetCard(id: 81, isFaceUp: true))
                 }
             }
         }

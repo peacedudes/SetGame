@@ -9,17 +9,13 @@ import SwiftUI
 
 struct Cardify: AnimatableModifier {
     var faceColor: Color
-    var isFaceUp: Bool {
-        didSet {
-            // TODO: Maybe this isn't needed
-            rotation = isFaceUp ? 0 : 180
-        }
-    }
-    var cornerRaidus = CGFloat(6)
+    var cornerRaidus = Style.cardCornerRadius
     var lineWidth = Style.shapeLineWidth
-    
+
     // CS193P trick; use 3d rotation for face up/down transitions
     var rotation: Double // degrees
+    var isFaceShowing: Bool { rotation < 90 }
+    
     var animatableData : Double {
         get { rotation }
         set { rotation = newValue }
@@ -27,14 +23,13 @@ struct Cardify: AnimatableModifier {
     
     init(faceColor: Color, isFaceUp: Bool) {
         self.faceColor = faceColor
-        self.isFaceUp = isFaceUp
         rotation = isFaceUp ? 0 : 180
     }
     
     func body(content: Content) -> some View {
         ZStack {
             let shape = RoundedRectangle(cornerRadius: cornerRaidus)
-            if rotation < 90 {
+            if isFaceShowing {
                 shape.foregroundColor(faceColor)
             } else {
                 Image("setBack")
@@ -42,7 +37,7 @@ struct Cardify: AnimatableModifier {
                     .clipShape(shape)
             }
             shape.strokeBorder(lineWidth: lineWidth)
-            content.opacity(rotation < 90 ? 1 : 0)
+            content.opacity(isFaceShowing ? 1 : 0)
         }
         .aspectRatio(Style.cardAspectRatio, contentMode: .fit)
         .rotation3DEffect(Angle.degrees(rotation), axis: (x: 0, y: 1, z: 0))

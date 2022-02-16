@@ -39,11 +39,9 @@ extension InsettableShape {
 //    }
 //}
 
-
-
 extension CGSize {
     /// bounds of largest horizontal golden ratio rect that fits, centered
-    var phiSized: CGRect {
+    var aspectSized: CGRect {
         let newWidth = min(width, height / Style.cardAspectRatio)
         let newHeight = newWidth * Style.cardAspectRatio
         let left = (width - newWidth) / 2
@@ -114,7 +112,7 @@ struct ScaledBezier: Shape {
 /// Convert UIBezier() to Shape, scaling to fit
 
 extension Color {
-    // TODO: this /draw/ stripes instead
+    // TODO: make this /draw/ stripes instead
     /// generate a Color stripe pattern
     var stripes: LinearGradient {
         let bg = Style.shapeBgColor

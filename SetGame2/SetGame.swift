@@ -20,36 +20,54 @@ struct SetGame {
         cards.reduce(0) { $0 + ($1.state == .inPlay ? 1 : 0) }
     }
     
+    var cardsToDeal: Int {
+        let neededCards = minimumCardsToShow - numberOfCardsInPlay + (isMatchedSet ? 3 : 0)
+        return max(0, neededCards)
+    }
+    
     mutating func shuffle() {
         cards.shuffle()
     }
 
-    mutating func choose(_ card: SetCard) {
-        if selectedCards.count < 3 {
-            let isTurningFaceUp = !selectedCards.contains(card)
-            toggleSelected(card)
-            selectedCards = cards.filter { $0.isSelected }
-            isMatchedSet = selectedCards.isMatchedSet
-            if isTurningFaceUp {
-                switch outcome {
-                case .none: break
-                case .match: score += 12
-                case .mismatch: score += -3
-                case .matchable: break
-                case .unmatchable: score += -1
-                }
-            }
+    mutating func mix() {
+        let cardsInPlay = cards.enumerated().filter { $1.state != .undealt }
+        for card in cardsInPlay {
+            let swap = cardsInPlay.randomElement()!
+            cards.swapAt(card.0, swap.0)
+        }
+    }
 
+    fileprivate mutating func updateSelection() {
+        selectedCards = cards.filter { $0.isSelected }
+    }
+
+    fileprivate mutating func updateScore() {
+        switch outcome {
+        case .none: break
+        case .match: score += 12
+        case .mismatch: score += -3
+        case .matchable: break
+        case .unmatchable: score += -1
+        }
+    }
+    
+    mutating func choose(_ card: SetCard) {
+        let isSelectingANewCard = !selectedCards.contains(card)
+        if selectedCards.count < 3 {
+            toggleSelected(card)
+            updateSelection()
+            isMatchedSet = selectedCards.isMatchedSet
+            if isSelectingANewCard {
+                updateScore()
+            }
         } else { // A complete set was already selected
             selectedCards.forEach { toggleSelected($0) }
             discardSetIfMatched()
-            if !selectedCards.contains(card) {
+            if isSelectingANewCard {
                 toggleSelected(card)
             }
-            selectedCards = cards.filter { $0.isSelected }
-            if outcome == .unmatchable {
-                score += -1
-            }
+            updateSelection()
+            updateScore()
         }
     }
     
@@ -64,6 +82,21 @@ struct SetGame {
         hasPlayableMatch(selectedCards) ? .matchable :
             .unmatchable
     }
+    
+    func playableMatches(_ chosen: [SetCard]) -> [SetCard] {
+        switch chosen.count {
+        case 0:
+            return cards.filter { $0.state == .inPlay && hasPlayableMatch([$0]) }
+        case 1:
+            return cards.filter { $0.state == .inPlay && $0.id != chosen[0].id && hasPlayableMatch([chosen[0], $0]) }
+        case 2:
+            let neededId = chosen[0].match(for: chosen[1])
+            return cards.filter { $0.state == .inPlay && $0.id == neededId }
+        default:
+            return []
+        }
+    }
+    
     
     func hasPlayableMatch(_ chosen: [SetCard]) -> Bool {
         switch chosen.count {
@@ -81,10 +114,14 @@ struct SetGame {
             return false
         }
     }
-    
 
-    mutating func deal(_ count: Int) {
-        var count = count
+    // TODO: change to a deal-one-card model
+    mutating func deal() {
+        var count = 1
+        if isMisMatchedSet {
+            choose(selectedCards[0])
+        }
+
         if isMatchedSet {
             minimumCardsToShow = numberOfCardsInPlay
             discardSetIfMatched()
@@ -92,6 +129,7 @@ struct SetGame {
             count -= 3
             guard count >= 0 else { return }
         }
+//        count = max(count, minimumCardsToShow - numberOfCardsInPlay)
         for _ in 0..<count { dealOneCard() }
     }
 
@@ -103,11 +141,19 @@ struct SetGame {
     mutating func dealOneCard() -> Int? {
         guard let index = nextUndealtCard else { return nil }
         cards[index].state = .inPlay
+        cards[index].isFaceUp = true
         return index
     }
 
+    func cardIndex(of card: SetCard) -> Int? { cards.firstIndex { $0.id == card.id } }
+    
+    mutating func toggleFaceUp(_ card: SetCard) {
+        guard let index = cardIndex(of: card) else { return }
+        cards[index].isFaceUp.toggle()
+    }
+    
     private mutating func toggleSelected(_ card: SetCard) {
-        guard let index = cards.firstIndex(where: { $0.id == card.id }) else { return }
+        guard let index = cardIndex(of: card) else { return }
         cards[index].isSelected.toggle()
     }
 
@@ -115,72 +161,19 @@ struct SetGame {
         if isMatchedSet {
             selectedCards.forEach { discard($0) }
             isMatchedSet = false
+            updateSelection()
         }
     }
 
     private mutating func discard(_ card: SetCard) {
-        guard let index = cards.firstIndex(where: { $0.id == card.id }) else { return }
+        guard let index = cardIndex(of: card) else { return }
         cards[index].state = .discarded
+        cards[index].isSelected = false
 
         // Swap matched set with newly dealt cards so no other cards move
         if numberOfCardsInPlay < minimumCardsToShow,
            let newCardIndex = dealOneCard() {
             cards.swapAt(index, newCardIndex)
         }
-    }
-}
-/**
- SetCards have four traits, each of three possible values.
- It's helpful to think of each trait as being a place holder for a base 3 value
- There are 81 unique cards, or 3 * 3 * 3 * 3
- By assigning id to 0...80, we can directly derive the traits from the id.
- */
-struct SetCard: Identifiable, Equatable {
-    /// 0...80 (or 0000...2222 in base 3).
-    let id: Int
-    var isSelected = false
-    var state = State.undealt
-
-    enum State {
-        case undealt, inPlay, discarded
-    }
-
-    init(id rawId: Int) {
-        // Todo: is it better to Fail if id >= 81 or negative?
-        id = abs(rawId) % 81
-    }
-}
-
-extension SetCard: CustomStringConvertible {
-    var t0: Int { id % 3 }
-    var t1: Int { (id / 3) % 3 }
-    var t2: Int { (id / 9) % 3 }
-    var t3: Int { (id / 27) % 3 }
-    
-    var description: String {
-        "\(t3)\(t2)\(t1)\(t0)"
-    }
-}
-
-extension Array where Element == SetCard {
-    // For each trait, good means all match, or none match
-    // Turns out this is true when the sum of each trait (0, 1, 2) equals (0 or 3 or 6).
-    var isMatchedSet: Bool {
-        count == 3 &&
-        self[0].id != self[1].id &&
-        map { $0.t0 } .reduce(0, +) % 3 == 0 &&
-        map { $0.t1 } .reduce(0, +) % 3 == 0 &&
-        map { $0.t2 } .reduce(0, +) % 3 == 0 &&
-        map { $0.t3 } .reduce(0, +) % 3 == 0
-    }
-}
-
-extension SetCard {
-    /// Calculate the id of the card that will match two others
-    func match(for other: SetCard) -> Int {
-        ((6 - (t0 + other.t0)) % 3) * 1 +
-        ((6 - (t1 + other.t1)) % 3) * 3 +
-        ((6 - (t2 + other.t2)) % 3) * 9 +
-        ((6 - (t3 + other.t3)) % 3) * 27
     }
 }
