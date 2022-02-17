@@ -17,7 +17,7 @@ struct SetGame {
     var isMisMatchedSet: Bool { selectedCards.count == 3 && !isMatchedSet }
 
     private var numberOfCardsInPlay: Int {
-        cards.reduce(0) { $0 + ($1.state == .inPlay ? 1 : 0) }
+        cards.reduce(0) { $0 + ($1.isInPlay ? 1 : 0) }
     }
     
     var cardsToDeal: Int {
@@ -30,7 +30,7 @@ struct SetGame {
     }
 
     mutating func mix() {
-        let cardsInPlay = cards.enumerated().filter { $1.state != .undealt }
+        let cardsInPlay = cards.enumerated().filter { !$1.isUndealt }
         for card in cardsInPlay {
             let swap = cardsInPlay.randomElement()!
             cards.swapAt(card.0, swap.0)
@@ -39,6 +39,7 @@ struct SetGame {
 
     fileprivate mutating func updateSelection() {
         selectedCards = cards.filter { $0.isSelected }
+        isMatchedSet = selectedCards.isMatchedSet
     }
 
     fileprivate mutating func updateScore() {
@@ -52,21 +53,25 @@ struct SetGame {
     }
     
     mutating func choose(_ card: SetCard) {
-        let isSelectingANewCard = !selectedCards.contains(card)
         if selectedCards.count < 3 {
-            toggleSelected(card)
-            updateSelection()
-            isMatchedSet = selectedCards.isMatchedSet
-            if isSelectingANewCard {
-                updateScore()
+            let card = cards[cardIndex(of: card)]
+            if card.isInPlay {
+                toggleSelected(card)
+                if !card.isSelected {
+                    updateScore()
+                }
             }
+
         } else { // A complete set was already selected
-            selectedCards.forEach { toggleSelected($0) }
-            discardSetIfMatched()
-            if isSelectingANewCard {
+            if !selectedCards.contains(card) {
                 toggleSelected(card)
             }
-            updateSelection()
+            selectedCards.forEach { toggleSelected($0) }
+            
+//            let isSet = isMatchedSet
+//            assert(!isSet, "this should be impossible?")
+//            selectedCards.forEach { isSet ? discard($0) : toggleSelected($0) }
+
             updateScore()
         }
     }
@@ -86,12 +91,12 @@ struct SetGame {
     func playableMatches(_ chosen: [SetCard]) -> [SetCard] {
         switch chosen.count {
         case 0:
-            return cards.filter { $0.state == .inPlay && hasPlayableMatch([$0]) }
+            return cards.filter { $0.isInPlay && hasPlayableMatch([$0]) }
         case 1:
-            return cards.filter { $0.state == .inPlay && $0.id != chosen[0].id && hasPlayableMatch([chosen[0], $0]) }
+            return cards.filter { $0.isInPlay && $0.id != chosen[0].id && hasPlayableMatch([chosen[0], $0]) }
         case 2:
             let neededId = chosen[0].match(for: chosen[1])
-            return cards.filter { $0.state == .inPlay && $0.id == neededId }
+            return cards.filter { $0.isInPlay && $0.id == neededId }
         default:
             return []
         }
@@ -101,79 +106,50 @@ struct SetGame {
     func hasPlayableMatch(_ chosen: [SetCard]) -> Bool {
         switch chosen.count {
         case 0:
-            let inPlay = cards.filter { $0.state == .inPlay }
+            let inPlay = cards.filter { $0.isInPlay }
             return inPlay.first(where: { hasPlayableMatch([$0]) }) != nil
         case 1:
-            let peers = cards.filter { $0.state == .inPlay && $0.id != chosen[0].id }
+            let peers = cards.filter { $0.isInPlay && $0.id != chosen[0].id }
             return peers.first(where: { hasPlayableMatch([chosen[0], $0]) }) != nil
         case 2:
             let neededId = chosen[0].match(for: chosen[1])
             let match = cards.first { $0.id == neededId }
-            return match?.state == .inPlay
+            return match?.isInPlay ?? false
         default:
             return false
         }
     }
-
-    // TODO: change to a deal-one-card model
-    mutating func deal() {
-        var count = 1
-        if isMisMatchedSet {
-            choose(selectedCards[0])
-        }
-
-        if isMatchedSet {
-            minimumCardsToShow = numberOfCardsInPlay
-            discardSetIfMatched()
-            minimumCardsToShow = 12
-            count -= 3
-            guard count >= 0 else { return }
-        }
-//        count = max(count, minimumCardsToShow - numberOfCardsInPlay)
-        for _ in 0..<count { dealOneCard() }
-    }
-
     var nextUndealtCard: Int? {
-        cards.firstIndex { $0.state == .undealt }
+        cards.firstIndex { $0.isUndealt }
     }
 
     @discardableResult
-    mutating func dealOneCard() -> Int? {
+    mutating func dealOneCard() -> SetCard? {
         guard let index = nextUndealtCard else { return nil }
         cards[index].state = .inPlay
         cards[index].isFaceUp = true
-        return index
+        return cards[index]
     }
 
-    func cardIndex(of card: SetCard) -> Int? { cards.firstIndex { $0.id == card.id } }
+    func cardIndex(of card: SetCard) -> Int { cards.firstIndex { $0.id == card.id } ?? 0 }
     
     mutating func toggleFaceUp(_ card: SetCard) {
-        guard let index = cardIndex(of: card) else { return }
-        cards[index].isFaceUp.toggle()
+        cards[cardIndex(of: card)].isFaceUp.toggle()
     }
     
     private mutating func toggleSelected(_ card: SetCard) {
-        guard let index = cardIndex(of: card) else { return }
-        cards[index].isSelected.toggle()
+        cards[cardIndex(of: card)].isSelected.toggle()
+        updateSelection()
     }
 
-    private mutating func discardSetIfMatched() {
-        if isMatchedSet {
-            selectedCards.forEach { discard($0) }
-            isMatchedSet = false
-            updateSelection()
-        }
-    }
-
-    private mutating func discard(_ card: SetCard) {
-        guard let index = cardIndex(of: card) else { return }
+    mutating func discard(_ card: SetCard) {
+        let index = cardIndex(of: card)
         cards[index].state = .discarded
         cards[index].isSelected = false
-
-        // Swap matched set with newly dealt cards so no other cards move
-        if numberOfCardsInPlay < minimumCardsToShow,
-           let newCardIndex = dealOneCard() {
-            cards.swapAt(index, newCardIndex)
-        }
+        updateSelection()
+    }
+    
+    mutating func swap(_ card1: SetCard, _ card2: SetCard) {
+        cards.swapAt(cardIndex(of: card1), cardIndex(of: card2))
     }
 }

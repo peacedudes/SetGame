@@ -15,7 +15,7 @@ struct StdSetGameView: View {
     @Namespace private var dealingNamespace
     
     var body: some View {
-        let cardsInPlay = game.cards.filter { $0.state == .inPlay }
+        let cardsInPlay = game.cards.filter { $0.isInPlay }
         ZStack(alignment: .bottom) {
             decks
             VStack(spacing: 0) {
@@ -32,27 +32,27 @@ struct StdSetGameView: View {
         .background(Color("background").opacity(0.3))
     }
 
-    var soundIcon: String { game.isHushed ? "speaker" : "speaker.wave.1" }
+    var soundIcon: String { ["speaker.slash", "speaker", "speaker.wave.1",][game.hintLevel] }
 
     // MARK: -- score title bar
     private var score: some View {
         VStack(spacing: 0) {
             HStack(alignment: .center) {
                 Button("New Game") {
-                    withAnimation(.easeInOut(duration: Style.tick)) {
+                    withAnimation(.easeInOut(duration: Style.tick * 2/3)) {
                         game.newGame()
                     }
                 }
                 Spacer()
                 Text("\(game.score)")
                 Spacer()
-                Button(action: game.toggleSound,
-                       label: { Image(systemName: soundIcon).font(.system(size: 39)) })
+                Button(action: game.toggleHint,
+                       label: { Image(systemName: soundIcon).font(.system(size: 32)) })
             }
             .font(.title2)
             HStack {
                 Spacer()
-                Text(game.hint ?? "_")
+                Text(game.hint ?? "")
             }
             .font(.body)
         }
@@ -63,34 +63,28 @@ struct StdSetGameView: View {
     // MARK: -- playing field
     
     @State private var dealtCardIds: Set<Int> = []
-    
-//    private func dealAnimation(for card: SetCard) -> Animation {
-//        let cardsToDeal = game.cards.filter { $0.state == .inPlay && !dealtCardIds.contains(card.id) }
-//        var delay = 0.0
-//        if let index = cardsToDeal.firstIndex(where: { $0.id == card.id }) {
-//            delay = Double(index) * (Style.totalDealDuration / Double(cardsToDeal.count))
-//            print("delay", delay)
-//        }
-//        return Animation.easeInOut(duration: Style.cardDealDuration).delay(delay)
-//    }
 
-    // TODO: do I need this on a card itself?
-//    @State private var isInAPile = false
     private func zIndex(for card: SetCard) -> Double {
         -Double(game.cards.firstIndex { $0.id == card.id} ?? 0)
     }
     
+    @State private var minCapacity = 12
+
     private func playingField(cards: [SetCard]) -> some View {
-        let padForCardsInPlay = CGFloat(81 - cards.count) / 20
-        let theView = AspectVGrid(items: cards, aspectRatio: Style.cardAspectRatio) { card in
+        AspectVGrid(items: cards,
+                    aspectRatio: Style.cardAspectRatio,
+                    minCapacity: minCapacity)
+        { card in
+            // squeeze padding when more cards are in play
+            let padForCardsInPlay = CGFloat(81 - cards.count) / 20
             let _ = srand48(card.id)
             StdCardView(card: card, faceColor: faceColor(for: card))
                 .foregroundColor(highlightColor(for: card))
                 .zIndex(zIndex(for: card))
                 .matchedGeometryEffect(id: card.id, in: dealingNamespace)
-                .messyStackEffect(!dealtCardIds.contains(card.id), rotation: Style.deckRotation)
+                .messyStackEffect(!dealtCardIds.contains(card.id), orientation: Style.deckRotation)
                 .transition(.asymmetric(insertion: .identity .animation(.none),
-                                        removal: .scale .animation(.none))
+                                        removal: .opacity .animation(.none))
                 )
                 .onTapGesture(count: 2) {
                     withAnimation(.easeInOut(duration: Style.tick)) {
@@ -98,47 +92,45 @@ struct StdSetGameView: View {
                     }
                 }
                 .onTapGesture(count: 1) {
-                    withAnimation(.easeInOut(duration: Style.tick)) {
+                    withAnimation(.easeInOut(duration: Style.tick / 5)) {
                         game.choose(card)
                     }
                 }
                 .onAppear {
                     dealtCardIds.remove(card.id)
-                    if card.isFaceUp {
-                        game.toggleFaceUp(card)
-                    }
-                    withAnimation(.easeInOut(duration: Style.tick).delay(dealAnimation[card.id] ?? 0)) {
+                    if card.isFaceUp { game.toggleFaceUp(card) }
+                    withAnimation(.easeInOut(duration: Style.tick)
+                                    .delay(game.dealAnimation[card.id] ?? 0)) {
                         dealtCardIds.insert(card.id)
                         game.toggleFaceUp(card)
                     }
-
                 }
                 .padding(padForCardsInPlay)
         }
-            .padding(padForCardsInPlay)
-        
-        //        dealtCardIds = game.cards.filter { $0.state == .inPlay } .map { $0.id }
-        return theView
+        .padding(.horizontal)
     }
 
     // MARK: -- messy ZStack
     
-    // TODO: cards should be a dont care, this should be MessyZStack
-    
     @State private var stackedCards: Set<Int> = []
     
-    private func cardPile(_ cards: [SetCard], rotation: Double) -> some View {
-        return ZStack {
+    // TODO: cards should be a dont care, this should be MessyZStack
+    private func cardPile(_ cards: [SetCard], orientation: Double) -> some View {
+        ZStack {
             ForEach(cards) { card in
                 let _ = srand48(card.id)
                 StdCardView(card: card, faceColor: faceColor(for: card))
                     .matchedGeometryEffect(id: card.id, in: dealingNamespace)
                     .zIndex(zIndex(for: card))
-                    .transition(.opacity .animation(.none))
+                    .transition(.opacity .animation(.none)) // onAppear handles transition
                     .foregroundColor(highlightColor(for: card))
-                    .messyStackEffect(stackedCards.contains(card.id), rotation: rotation)
-                    .onAppear { stackedCards.insert(card.id) }
-                    .onDisappear { stackedCards.remove(card.id) }
+                    .messyStackEffect(stackedCards.contains(card.id), orientation: orientation)
+                    .onAppear {
+                        stackedCards.remove(card.id)
+                        withAnimation(.easeInOut(duration: Style.tick).delay(game.dealAnimation[card.id] ?? 0)) {
+                            _ = stackedCards.insert(card.id)
+                        }
+                    }
             }
         }
         .frame(idealHeight: 60, maxHeight: 100)
@@ -153,63 +145,52 @@ struct StdSetGameView: View {
         }
     }
 
-    @State private var goodCards: [Int] = []
+    @State private var goodCardIds: [Int] = []
     
     private var showHint: some View {
         Button("hint") {
-            goodCards = game.suggestions()
-            withAnimation(.linear(duration: Style.tick)) {
-                goodCards = []
+            let choices = game.suggestions().shuffled()
+            for card in choices {
+                let delay = Double.random(in: 0.0 ... Style.tick / 3 * Double(choices.count))
+                withAnimation(.linear(duration: Style.tick).delay(delay)) {
+                    goodCardIds.append(card)
+                }
+                withAnimation(.linear(duration: 0.001).delay(delay + Style.tick * 1/4)) {
+                    if let index = goodCardIds.firstIndex(of: card) {
+                        goodCardIds.remove(at: index)
+                    }
+                }
             }
         }
     }
-
-    @State private var dealAnimation: [Int: Double] = [:]
-    /**
-     Prepare  to deal the next cardCount cards, setting a launch order timing delay for each.  The cards are not dealt.
-     - Parameter cardCount: The number of cards that will be dealt
-     - Returns: the actual cards to be dealt
-
-     Cards are dealt from the deck, but turn faceUp in onAppear in playingField, and the timings must match.
-     dealAnimation is a scratch pad [card.id: animation delay] for synchronizing these animations.
-     */
-    @discardableResult
-    private func setDealAnimation(for cardCount: Int) -> [SetCard] {
-        let cardsToDeal = Array(game.cards.filter { $0.state == .undealt }.prefix(cardCount))
-        
-        let perCardDelay = min(Style.tick, Style.totalDealDuration / Double(cardCount))
-        var delay = 0.0
-//        for (i, card) in cardsToDeal.enumerated() {
-//            dealAnimation[card.id] = delay
-//            delay += perCardDelay
-//            delay += (i + 1) % 3 == 0 ? perCardDelay * 3 : 0
-//        }
-        for card in cardsToDeal {
-            dealAnimation[card.id] = delay
-            delay += perCardDelay / 2 + Double.random(in: 0...perCardDelay)
-        }
-        return cardsToDeal
-    }
-    
     private var decks: some View {
         HStack {
             Spacer()
-            cardPile(game.cards.filter { $0.state == .discarded }, rotation: Style.deckRotation)
-            Spacer()
-            cardPile(game.cards.filter { $0.state == .undealt }, rotation: Style.discardRotation)
-                .onTapGesture() {
-                    let neededCards = max(game.cardsToDeal, 3) - (game.isMatchedSet ? 2 : 0)
-                    let cardsToDeal = setDealAnimation(for: neededCards)
-                    for card in cardsToDeal {
-                        withAnimation(.easeInOut(duration: Style.cardDealDuration).delay(dealAnimation[card.id] ?? 0)) {
-                            game.deal()
+            let discarded = game.cards.filter { $0.isDiscarded }
+            if discarded.count > 0 {
+                cardPile(discarded, orientation: Style.discardRotation)
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: Style.tick)) {
+                            game.shuffle()
                         }
+                    }
+            } else {
+                shuffle
+            }
+            Spacer()
+            cardPile(game.cards.filter { $0.isUndealt }, orientation: Style.deckRotation)
+                .onTapGesture() {
+                    if !game.isMatchedSet {
+                        withAnimation(.easeInOut(duration: Style.tick * 2/3)) {
+                            minCapacity = max(12, game.cards.filter { $0.isInPlay }.count + 3)
+                        }
+                    }
+                    withAnimation(.easeInOut(duration: Style.tick)) {
+                        game.deal(game.isMatchedSet ? 0 : 3)
                     }
                 }
             Spacer()
             showHint
-            Spacer()
-            shuffle
             Spacer()
         }
         .background(.background)
@@ -222,7 +203,6 @@ struct StdSetGameView: View {
                 .font(.title2)
                 .onTapGesture {
                     withAnimation(.easeInOut(duration: Style.tick)) {
-                        dealAnimation = [:]
                         game.newGame()
                     }
                 }
@@ -247,8 +227,12 @@ struct StdSetGameView: View {
         }
     }
     
+    var randomColor: Color {
+        Color.init(hue: Double.random(in: 0...1), saturation: 0.66, brightness: 0.99, opacity: 1.0)
+    }
+    
     private func faceColor(for card: SetCard) -> Color {
-        goodCards.contains(card.id) ? Color("cardFaceSelected") :
+        goodCardIds.contains(card.id) ? Color("cardFaceMatched") : //Color("cardFaceSelected") :
         !card.isSelected ? Color("cardFace") :
         game.isMatchedSet ? Color("cardFaceMatched") :
         game.isMisMatchedSet ? Color("cardFaceMismatched") :
@@ -264,14 +248,15 @@ struct StdSetGameView: View {
 }
 
 extension View {
+    // TODO: Shouldn't messyStackEffect be a GeometryEffect??
     /**
      Nudge the view randomly moving it horizontally, vertically, and rotationally
      
-     - Parameter seed: random number seed so views can be redrawn with the same jitter
      - Parameter rotation: normal center of rotation
      - Parameter maxSlide: max movement in  x and y direction
      - Parameter maxRotate: maximum rotation (degrees)
      
+    Uses drand48(), which seeded with each card's id will keep cards messy-but-stable.
      ```
      // Example use:
      srand48(card.id) // attach a fixed the jitter to each unique item
@@ -280,36 +265,17 @@ extension View {
      ```
      */
     func messyStackEffect(_ isEnabled: Bool,
-                          rotation: Double = 0,
+                          orientation: Double = 0,
                           maxSlide: Double = Style.deckSlide,
                           maxRotate: Double = Style.deckSlip) -> some View {
-        let angle = Angle.degrees(rotation) + Angle(degrees: (drand48() - 0.5) * 2 * maxRotate)
+        let angle = Angle.degrees(orientation) + Angle(degrees: (drand48() - 0.5) * 2 * maxRotate)
         let x = CGFloat((drand48() - 0.5) * 2 * maxSlide)
         let y =  CGFloat((drand48() - 0.5) * 2 * maxSlide)
         return self
             .rotationEffect(isEnabled ? angle : Angle.zero)
-//            .transformEffect(.init(translationX: x, y: y))
             .offset(x: isEnabled ? x : 0, y: isEnabled ? y : 0)
     }
 }
-// TODO: Shouldn't messyStackEffect be a GeometryEffect??
-//struct JitterEffect: GeometryEffect {
-//    var offset: CGSize
-//    
-//    var animatableData: CGSize.AnimatableData {
-//        get { CGSize.AnimatableData(offset.width, offset.height) }
-//        set { offset = CGSize(width: newValue.first, height: newValue.second) }
-//    }
-//
-//    public func effectValue(size: CGSize) -> ProjectionTransform {
-//        return ProjectionTransform(CGAffineTransform(translationX: offset.width, y: offset.height))
-//    }
-//}
-//public extension View {
-//    func jitterEffect(_ offset: CGSize) -> some View {
-//        return modifier(JitterEffect(offset: offset))
-//    }
-//}
 
 struct SetGameView_Previews: PreviewProvider {
     static var newGame: StdSetGame {
@@ -319,6 +285,7 @@ struct SetGameView_Previews: PreviewProvider {
                 game.deal()
             }
         }
+        game.choose(game.cards[0])
         return game
     }
     

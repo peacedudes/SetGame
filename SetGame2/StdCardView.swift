@@ -20,7 +20,6 @@ struct StdCardView: View {
         card
             .cardify(faceColor: faceColor, isFaceUp: card.isFaceUp)
             .padding(Style.shapeLineWidth)
-        
     }
 }
 
@@ -40,12 +39,9 @@ extension SetCard : View {
     var t0Name: String { ["open", "striped", "solid"][t0] }
     var t1Name: String { ["green", "blue", "red"][t1] }
     var t2Name: String { ["diamond", "squiggle", "oval"][t2] + (t3 > 0 ? "s" : "") }
-    var t3Name: String { ["single", "pair", "triplet"][t3] }
+    var t3Name: String { ["single", "double", "triple"][t3] }
     
     var cardName: String { ["\(t3 + 1)", t0Name, t1Name, t2Name].joined(separator: " ") }
-
-    
-//    var isInPile: Bool { state != .inPlay }
 
     var body: some View {
         GeometryReader { geometry in
@@ -59,7 +55,6 @@ extension SetCard : View {
             }
             .padding(.vertical, 2)
             .frame(maxWidth: .infinity)
-
         }
     }
     

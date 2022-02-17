@@ -16,21 +16,23 @@ class StdSetGame: ObservableObject {
     var isMatchedSet: Bool { model.isMatchedSet }
     var isMisMatchedSet: Bool { model.isMisMatchedSet }
     var cardsToDeal: Int { model.cardsToDeal }
-//    var selectedCards: [SetCard] { model.selectedCards }
 
-    @Published private(set) var isHushed = true
+    @Published private(set) var hintLevel = 0
+    var isHelpEnabled: Bool { hintLevel > 0 }
+    var isHushed: Bool { hintLevel < 2 }
     @Published private(set) var hint: String?
     
     fileprivate func provideHint(_ message: String? = nil) {
-         hint = message ?? model.feedback ?? "_"
-         if !isHushed, let spokenText = hint, spokenText.count > 1 {
-             if model.hasPlayableMatch(model.selectedCards) {
-                 spokenText.speak(voice: Voice.named(Style.whisper))//, rate: 0.8)
-             } else {
-                 spokenText.speak()
-             }
-         }
-     }
+        hint = !isHelpEnabled ? message : message ?? model.feedback ?? "_"
+        
+        if !isHushed, let spokenText = hint, spokenText.count > 1 {
+            if model.hasPlayableMatch(model.selectedCards) {
+                spokenText.speak(voice: Voice.named(Style.whisper))//, rate: 0.8)
+            } else {
+                spokenText.speak()
+            }
+        }
+    }
 
     private var explainMismatch: String {
         var problems = mismatchErrors(model.selectedCards)
@@ -61,24 +63,64 @@ class StdSetGame: ObservableObject {
         if !cards.isT3Matched { // number
             problems.append(cards[first.t3 == second.t3 ? 0 : 2].t3Name)
         }
-        return problems.map { "two \($0)s" }
+        return problems.map { "two are \($0)" }
     }
 
     // MARK: - Intents
 
     func choose(_ card: SetCard) {
-        model.choose(card)
-        if !card.isSelected || model.selectedCards.count == 0 {
-            provideHint()
-        } else {
-            hint = nil
+        if isMatchedSet {
+            deal(0) // replace any matched set
         }
+        model.choose(card)
+        provideHint()
     }
     
-    func deal() {
+    
+    @Published var dealAnimation: [Int: Double] = [:]
+    /**
+     Prepare  to deal the next cardCount cards, setting a launch order timing delay for each.  The cards are not dealt.
+     - Parameter cardCount: The number of cards that will be dealt
+     - Returns: the actual cards to be dealt
+
+     Cards are dealt from the deck, but turn faceUp in onAppear in playingField, and the timings must match.
+     dealAnimation is a scratch pad [card.id: animation delay] for synchronizing these animations.
+     */
+    @discardableResult
+    private func setDealAnimation(for cardCount: Int, delayed: Double = 0) -> [SetCard] {
+        let cardsToDeal = Array(cards.filter { $0.isUndealt }.prefix(cardCount))
+        let perCardDelay = min(Style.tick, Style.totalDealDuration / Double(cardCount))
+        var startTime = delayed
+        for card in cardsToDeal {
+            dealAnimation[card.id] = startTime
+            startTime += Double.random(in: 0...(perCardDelay * 1.5))
+        }
+        return cardsToDeal
+    }
+
+    func deal(_ wanted: Int = 0) {
+        let neededCards = max(cardsToDeal, wanted)
+        var existingMatch = isMatchedSet ? model.selectedCards : []
+        guard neededCards > 0 || isMatchedSet else { return }
         let formerOutcome = model.outcome
-        model.deal()
-        provideHint()
+    
+        let delay = !isMatchedSet ? Style.tick / 2 : 0
+        let cardsToDeal = setDealAnimation(for: neededCards, delayed: delay)
+        for card in cardsToDeal {
+            withAnimation(.easeInOut(duration: Style.cardDealDuration)
+                            .delay(dealAnimation[card.id] ?? 0)) {
+                if let newCard = model.dealOneCard(), existingMatch.count > 0 {
+                    let oldCard = existingMatch.removeFirst()
+                    dealAnimation[oldCard.id] = dealAnimation[newCard.id]
+                    model.swap(newCard, oldCard)
+                    model.discard(oldCard)
+                }
+            }
+        }
+        for card in existingMatch {
+            model.discard(card)
+        }
+
         let newOutcome = model.outcome
         if newOutcome != formerOutcome || newOutcome == .none {
             provideHint()
@@ -86,9 +128,9 @@ class StdSetGame: ObservableObject {
     }
     
     func newGame() {
+        dealAnimation = [:]
         model = SetGame()
         hint = nil
-//        deal(model.minimumCardsToShow)
     }
 
     // Not a true shuffle; only mixes faceUp cards
@@ -104,14 +146,15 @@ class StdSetGame: ObservableObject {
 
         case 2:
             let neededId = model.selectedCards[0].match(for: model.selectedCards[1])
-            let card = cards.first { $0.id == neededId }
-            provideHint("You need " + SetCard(id: neededId).cardName)
-            if card?.state == .inPlay {
-                choices.append(neededId)
+            if let card = cards.first(where: { $0.id == neededId }) {
+                provideHint("You need " + SetCard(id: neededId).cardName)
+                if card.isInPlay {
+                    choices.append(neededId)
+                }
             }
         default:
             choices = model.playableMatches(model.selectedCards) .map { $0.id }
-            provideHint(choices.count == 0 ? "no matches" : "\(choices.count) choices")
+            provideHint(choices.count == 0 ? "no sets" : "there are \(choices.count) choices")
         }
         return choices
     }
@@ -120,10 +163,8 @@ class StdSetGame: ObservableObject {
         model.toggleFaceUp(card)
     }
     
-    func toggleSound() {
-        isHushed.toggle()
-        if !isHushed {
-            provideHint()
-        }
+    func toggleHint() {
+        hintLevel = (hintLevel + 1) % 3
+        provideHint()
     }
 }

@@ -24,6 +24,9 @@ struct SetCard: Identifiable, Equatable {
         case undealt, inPlay, discarded
     }
     var state = State.undealt
+    var isUndealt: Bool { state == .undealt }
+    var isInPlay: Bool { state == .inPlay }
+    var isDiscarded: Bool { state == .discarded }
 
     init(id rawId: Int, isFaceUp: Bool = false) {
         // Todo: is it better to Fail if id >= 81 or negative?

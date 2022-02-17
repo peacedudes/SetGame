@@ -19,8 +19,8 @@ struct Style {
     static let shapeLineWidth = CGFloat(2)
     static let cardCornerRadius = CGFloat(8)
     
-    static let deckRotation = -70.0
-    static let discardRotation = -85.0
+    static let deckRotation = -90.0
+    static let discardRotation = -15.0
 
     static let deckSlide = 4.0 // messy pile maximum x and y offset
     static let deckSlip = 5.0 // messy pile maximum rotational offset (degrees)

@@ -46,7 +46,6 @@
 /* Begin PBXFileReference section */
 		7E49C22527AD26F10056C5D2 /* Style.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Style.swift; sourceTree = "<group>"; };
 		7E50D987276CB5BC002B4F55 /* Voice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Voice.swift; sourceTree = "<group>"; };
-		7ED08B532771BC2A00895075 /* MyPlayground.playground */ = {isa = PBXFileReference; lastKnownFileType = file.playground; path = MyPlayground.playground; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.swift; };
 		7EE0C4212779D79F00E7790E /* ColoredShapeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColoredShapeView.swift; sourceTree = "<group>"; };
 		7EF17CDC27AAA169004F18A7 /* SetCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetCard.swift; sourceTree = "<group>"; };
 		7EF2FDFB2759FBB900C4A35F /* SetGame2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SetGame2.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -95,7 +94,6 @@
 		7EF2FDF22759FBB900C4A35F = {
 			isa = PBXGroup;
 			children = (
-				7ED08B532771BC2A00895075 /* MyPlayground.playground */,
 				7EF2FDFD2759FBB900C4A35F /* SetGame2 */,
 				7EF2FE0E2759FBBA00C4A35F /* SetGame2Tests */,
 				7EF2FE182759FBBA00C4A35F /* SetGame2UITests */,

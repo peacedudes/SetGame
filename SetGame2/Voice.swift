@@ -107,11 +107,10 @@ extension SetGame {
             ]
         ]
         let result = outcome
-        if result == .none {
+        guard result != .none else {
             return hasPlayableMatch([]) ? nil :
             nextUndealtCard == nil ? "the game is over" : "This could be difficult..."
         }
         return responses[outcome]?.randomElement()
     }
-
 }

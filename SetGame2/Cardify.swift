@@ -44,7 +44,6 @@ struct Cardify: AnimatableModifier {
     }
 }
 
-
 extension View {
     func cardify(faceColor: Color = Color("faceColor"),
                  isFaceUp: Bool = true) -> some View {
