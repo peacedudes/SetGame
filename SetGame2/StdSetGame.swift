@@ -8,6 +8,12 @@
 import AVFoundation
 import SwiftUI
 
+/// UserDefaults persistant data name
+enum Literal {
+    static let hintLevel = "hintLevel"
+    static let highScore = "highScore"
+}
+
 class StdSetGame: ObservableObject {
     
     @Published private var model = SetGame()
@@ -15,15 +21,23 @@ class StdSetGame: ObservableObject {
     var score: Int { model.score }
     var isMatchedSet: Bool { model.isMatchedSet }
     var isMisMatchedSet: Bool { model.isMisMatchedSet }
-    var cardsToDeal: Int { model.cardsToDeal }
+    
+    let minimumCardsToShow = 12
+    var cardsToDeal: Int {
+        let neededCards = minimumCardsToShow - model.numberOfCardsInPlay + (isMatchedSet ? 3 : 0)
+        return max(0, neededCards)
+    }
 
-    @Published private(set) var hintLevel = 0
+    @Published private(set) var hintLevel = UserDefaults.standard.integer(forKey: Literal.hintLevel)
+    @Published private(set) var highScore = max(100, UserDefaults.standard.integer(forKey: Literal.highScore))
+
     var isHelpEnabled: Bool { hintLevel > 0 }
     var isHushed: Bool { hintLevel < 2 }
     @Published private(set) var hint: String?
     
     fileprivate func provideHint(_ message: String? = nil) {
-        hint = !isHelpEnabled ? message : message ?? model.feedback ?? "_"
+        
+        hint = isHelpEnabled ? (message ?? model.feedback ?? "_") : message
         
         if !isHushed, let spokenText = hint, spokenText.count > 1 {
             if model.hasPlayableMatch(model.selectedCards) {
@@ -73,40 +87,45 @@ class StdSetGame: ObservableObject {
             deal(0) // replace any matched set
         }
         model.choose(card)
+        if model.score > highScore {
+            highScore = model.score
+            UserDefaults.standard.set(highScore, forKey: Literal.highScore)
+        }
         provideHint()
     }
     
     
+    /// [card.id: delay]
     @Published var dealAnimation: [Int: Double] = [:]
+    
     /**
-     Prepare  to deal the next cardCount cards, setting a launch order timing delay for each.  The cards are not dealt.
-     - Parameter cardCount: The number of cards that will be dealt
-     - Returns: the actual cards to be dealt
+     Prepare  to deal the next few cards by setting a launch order timing delay for each.
 
-     Cards are dealt from the deck, but turn faceUp in onAppear in playingField, and the timings must match.
+     Cards are dealt from the deck, but turn faceUp in onAppear in playingField... the timings must match.
      dealAnimation is a scratch pad [card.id: animation delay] for synchronizing these animations.
      */
-    @discardableResult
-    private func setDealAnimation(for cardCount: Int, delayed: Double = 0) -> [SetCard] {
-        let cardsToDeal = Array(cards.filter { $0.isUndealt }.prefix(cardCount))
-        let perCardDelay = min(Style.tick, Style.totalDealDuration / Double(cardCount))
+    private func setDealAnimation(for cards: [SetCard], delayed: Double = 0) {
+        let perCardDelay = min(clock, Style.totalDealDuration * pacing / Double(cards.count))
         var startTime = delayed
-        for card in cardsToDeal {
+        for card in cards {
             dealAnimation[card.id] = startTime
             startTime += Double.random(in: 0...(perCardDelay * 1.5))
         }
-        return cardsToDeal
     }
 
     func deal(_ wanted: Int = 0) {
         let neededCards = max(cardsToDeal, wanted)
-        var existingMatch = isMatchedSet ? model.selectedCards : []
         guard neededCards > 0 || isMatchedSet else { return }
+        var existingMatch = isMatchedSet ? model.selectedCards : []
         let formerOutcome = model.outcome
     
-        let delay = !isMatchedSet ? Style.tick / 2 : 0
-        let cardsToDeal = setDealAnimation(for: neededCards, delayed: delay)
+        // TODO: how to avoid any delay if cards don't need to be resized?
+        // The delay is to give field time to resize layout for new cards
+        let delay = !isMatchedSet ? clock / 8 : 0
+        let cardsToDeal = Array(cards.filter { $0.isUndealt }.prefix(neededCards))
+        setDealAnimation(for: cardsToDeal, delayed: delay)
         for card in cardsToDeal {
+            // TODO: I don't think Style.cardDealDuration is right here...and there
             withAnimation(.easeInOut(duration: Style.cardDealDuration)
                             .delay(dealAnimation[card.id] ?? 0)) {
                 if let newCard = model.dealOneCard(), existingMatch.count > 0 {
@@ -117,8 +136,14 @@ class StdSetGame: ObservableObject {
                 }
             }
         }
+        setDealAnimation(for: existingMatch)
         for card in existingMatch {
-            model.discard(card)
+            withAnimation(.easeInOut(duration: Style.cardDealDuration)
+                            .delay(dealAnimation[card.id, default: 0] / 5)
+            ) {
+                // TODO: delay here??  .. didn't look right
+                model.discard(card)
+            }
         }
 
         let newOutcome = model.outcome
@@ -137,9 +162,19 @@ class StdSetGame: ObservableObject {
     func shuffle() {
         model.mix()
     }
-    
+    private func lowestTerms(_ lhs: Int, _ rhs: Int) -> (Int, Int) {
+        func gcd(_ a: Int, _ b: Int) -> Int {
+            if b == 0 { return a }
+            return gcd(b, a % b)
+        }
+        let gcd = gcd(lhs, rhs)
+        return (numerator: lhs / gcd, denominator: rhs / gcd)
+    }
+
     func suggestions() -> [Int] {
         var choices: [Int] = []
+        choices = model.playableMatches(model.selectedCards) .map { $0.id }
+        
         switch model.selectedCards.count {
         case 3:
             provideHint(isMisMatchedSet ? explainMismatch : "Keep it up")
@@ -152,9 +187,28 @@ class StdSetGame: ObservableObject {
                     choices.append(neededId)
                 }
             }
+            
         default:
-            choices = model.playableMatches(model.selectedCards) .map { $0.id }
-            provideHint(choices.count == 0 ? "no sets" : "there are \(choices.count) choices")
+//            choices = model.playableMatches(model.selectedCards) .map { $0.id }
+            let cardsInPlay = model.numberOfCardsInPlay
+            var hint = "\(choices.count) choices"
+            if choices.count > 0 {
+                let unchosenCards = cardsInPlay - model.selectedCards.count
+                let odds = lowestTerms(choices.count, unchosenCards)
+                let percentGood = odds.0 * 100 / odds.1
+                    hint +=
+                    percentGood == 100 ? ", choose any card" :
+                    percentGood >= 80 ? ", most can match" :
+                    unchosenCards == odds.1 ? ", or \(percentGood)% guessable" :
+                    ", or \(odds.0) in \(odds.1) can match"
+            } else {
+                let undealt = cards.filter { $0.isUndealt } .count
+                hint = (model.selectedCards.count > 0 ? "try choosing a different card" :
+                            undealt < 1 ? "start a New Game" :
+                            cardsInPlay < 3 ? "tap the deck to begin" :
+                            "deal more cards")
+            }
+            provideHint(hint)
         }
         return choices
     }
@@ -165,6 +219,14 @@ class StdSetGame: ObservableObject {
     
     func toggleHint() {
         hintLevel = (hintLevel + 1) % 3
+        UserDefaults.standard.set(hintLevel, forKey: Literal.hintLevel)
         provideHint()
+    }
+    
+    @Published private(set) var pace = 0
+    private var pacing: Double { pace == 0 ? 1 : 5 }
+    var clock: Double { Style.tick * pacing }
+    func toggleSpeed() {
+        pace = (pace + 1) % 2
     }
 }

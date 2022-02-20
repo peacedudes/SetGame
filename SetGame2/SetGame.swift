@@ -10,19 +10,13 @@ import Foundation
 struct SetGame {
     private(set) var score = 0
     private(set) var cards = (0 ..< 81).map { SetCard(id: $0) } .shuffled()
-    private(set) var minimumCardsToShow = 12
 
     private(set) var selectedCards: [SetCard] = []
     private(set) var isMatchedSet: Bool = false
     var isMisMatchedSet: Bool { selectedCards.count == 3 && !isMatchedSet }
 
-    private var numberOfCardsInPlay: Int {
+    var numberOfCardsInPlay: Int {
         cards.reduce(0) { $0 + ($1.isInPlay ? 1 : 0) }
-    }
-    
-    var cardsToDeal: Int {
-        let neededCards = minimumCardsToShow - numberOfCardsInPlay + (isMatchedSet ? 3 : 0)
-        return max(0, neededCards)
     }
     
     mutating func shuffle() {
@@ -32,7 +26,7 @@ struct SetGame {
     mutating func mix() {
         let cardsInPlay = cards.enumerated().filter { !$1.isUndealt }
         for card in cardsInPlay {
-            let swap = cardsInPlay.randomElement()!
+            let swap = cardsInPlay.randomElement() ?? card
             cards.swapAt(card.0, swap.0)
         }
     }
@@ -46,9 +40,9 @@ struct SetGame {
         switch outcome {
         case .none: break
         case .match: score += 12
-        case .mismatch: score += -3
+        case .mismatch: score = max(0, score - 3)
         case .matchable: break
-        case .unmatchable: score += -1
+        case .unmatchable: score = max(0, score - 1)
         }
     }
     
@@ -67,12 +61,6 @@ struct SetGame {
                 toggleSelected(card)
             }
             selectedCards.forEach { toggleSelected($0) }
-            
-//            let isSet = isMatchedSet
-//            assert(!isSet, "this should be impossible?")
-//            selectedCards.forEach { isSet ? discard($0) : toggleSelected($0) }
-
-            updateScore()
         }
     }
     
@@ -119,16 +107,16 @@ struct SetGame {
             return false
         }
     }
-    var nextUndealtCard: Int? {
-        cards.firstIndex { $0.isUndealt }
-    }
+
+    var nextUndealtCard: Int? { cards.firstIndex { $0.isUndealt } }
+    var isDeckEmpty: Bool { nextUndealtCard == nil }
 
     @discardableResult
     mutating func dealOneCard() -> SetCard? {
-        guard let index = nextUndealtCard else { return nil }
-        cards[index].state = .inPlay
-        cards[index].isFaceUp = true
-        return cards[index]
+        guard let topCard = nextUndealtCard else { return nil }
+        cards[topCard].state = .inPlay
+        cards[topCard].isFaceUp = true
+        return cards[topCard]
     }
 
     func cardIndex(of card: SetCard) -> Int { cards.firstIndex { $0.id == card.id } ?? 0 }

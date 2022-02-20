@@ -6,55 +6,69 @@
 //
 
 import SwiftUI
-import simd
-
 
 struct StdSetGameView: View {
     @ObservedObject var game: StdSetGame
     
     @Namespace private var dealingNamespace
+    var cardsInPlay: [SetCard] { game.cards.filter { $0.isInPlay } }
+    var activeSpeed: Double { game.clock }
+    var setTick: Animation { .easeInOut(duration: activeSpeed) }
     
     var body: some View {
-        let cardsInPlay = game.cards.filter { $0.isInPlay }
         ZStack(alignment: .bottom) {
             decks
             VStack(spacing: 0) {
-                score
+                Spacer(minLength: 60)
                 if cardsInPlay.count > 0 {
                     playingField(cards: cardsInPlay)
                 } else {
                     gameOver
                 }
-                Spacer(minLength: 40)
+                Spacer(minLength: 50)
+            }
+            VStack {
+                score
+                Spacer()
             }
             Spacer(minLength: 0)
         }
         .background(Color("background").opacity(0.3))
     }
 
-    var soundIcon: String { ["speaker.slash", "speaker", "speaker.wave.1",][game.hintLevel] }
+    var soundIcon: String { ["speaker.slash", "speaker", "speaker.wave.1"][game.hintLevel % 3] }
+    var speedIcon: String { ["hare", "tortoise"][game.pace % 2]}
 
     // MARK: -- score title bar
     private var score: some View {
         VStack(spacing: 0) {
             HStack(alignment: .center) {
-                Button("New Game") {
-                    withAnimation(.easeInOut(duration: Style.tick * 2/3)) {
+                Button(game.cards.first(where: { $0.isInPlay}) == nil ? "" : "New") {
+                    withAnimation(.easeInOut(duration: activeSpeed * 2/3)) {
                         game.newGame()
                     }
                 }
                 Spacer()
+                Button(action: withAnimation(setTick) { game.toggleSpeed },
+                       label: { Image(systemName: speedIcon).font(.system(size: 20)) })
+                Spacer()
                 Text("\(game.score)")
                 Spacer()
-                Button(action: game.toggleHint,
-                       label: { Image(systemName: soundIcon).font(.system(size: 32)) })
+                Button(action: withAnimation(setTick) { game.toggleHint },
+                       label: { Image(systemName: soundIcon).font(.system(size: 28)) })
             }
             .font(.title2)
             HStack {
                 Spacer()
-                Text(game.hint ?? "")
+                if game.score >= game.highScore {
+                    Text("* hiscore *")
+                        .transition(.asymmetric(insertion: .scale.animation(.easeInOut(duration: activeSpeed / 3).repeatCount(5)),
+                                                removal: .opacity))
+                    Spacer()
+                }
+                Text(game.hint ?? "").font(.body)
             }
-            .font(.body)
+            
         }
         .padding(.horizontal)
         .background(.background)
@@ -69,123 +83,73 @@ struct StdSetGameView: View {
     }
     
     @State private var minCapacity = 12
-
+    @State private var misMatchedCards: [SetCard] = []
+    
+    private func paddingForCardsInPlay(_ count: Int) -> CGFloat {
+        CGFloat(81 - count) / 20
+    }
     private func playingField(cards: [SetCard]) -> some View {
         AspectVGrid(items: cards,
                     aspectRatio: Style.cardAspectRatio,
                     minCapacity: minCapacity)
         { card in
-            // squeeze padding when more cards are in play
-            let padForCardsInPlay = CGFloat(81 - cards.count) / 20
-            let _ = srand48(card.id)
-            StdCardView(card: card, faceColor: faceColor(for: card))
+            let _ = srand48(card.id.hashValue) // sync randomness to card
+            StdCardView(card, faceColor: faceColor(for: card))
                 .foregroundColor(highlightColor(for: card))
                 .zIndex(zIndex(for: card))
                 .matchedGeometryEffect(id: card.id, in: dealingNamespace)
-                .messyStackEffect(!dealtCardIds.contains(card.id), orientation: Style.deckRotation)
+                .messyStackEffect(!dealtCardIds.contains(card.id), pile: Style.deck)
                 .transition(.asymmetric(insertion: .identity .animation(.none),
                                         removal: .opacity .animation(.none))
                 )
                 .onTapGesture(count: 2) {
-                    withAnimation(.easeInOut(duration: Style.tick)) {
-                        game.toggleFaceUp(card)
-                    }
+                    withAnimation(setTick) { game.toggleFaceUp(card) }
                 }
                 .onTapGesture(count: 1) {
-                    withAnimation(.easeInOut(duration: Style.tick / 5)) {
-                        game.choose(card)
-                    }
+                    game.choose(card)
                 }
                 .onAppear {
                     dealtCardIds.remove(card.id)
                     if card.isFaceUp { game.toggleFaceUp(card) }
-                    withAnimation(.easeInOut(duration: Style.tick)
-                                    .delay(game.dealAnimation[card.id] ?? 0)) {
+                    withAnimation(setTick .delay(game.dealAnimation[card.id] ?? 0)) {
                         dealtCardIds.insert(card.id)
                         game.toggleFaceUp(card)
                     }
                 }
-                .padding(padForCardsInPlay)
-        }
-        .padding(.horizontal)
-    }
-
-    // MARK: -- messy ZStack
-    
-    @State private var stackedCards: Set<Int> = []
-    
-    // TODO: cards should be a dont care, this should be MessyZStack
-    private func cardPile(_ cards: [SetCard], orientation: Double) -> some View {
-        ZStack {
-            ForEach(cards) { card in
-                let _ = srand48(card.id)
-                StdCardView(card: card, faceColor: faceColor(for: card))
-                    .matchedGeometryEffect(id: card.id, in: dealingNamespace)
-                    .zIndex(zIndex(for: card))
-                    .transition(.opacity .animation(.none)) // onAppear handles transition
-                    .foregroundColor(highlightColor(for: card))
-                    .messyStackEffect(stackedCards.contains(card.id), orientation: orientation)
-                    .onAppear {
-                        stackedCards.remove(card.id)
-                        withAnimation(.easeInOut(duration: Style.tick).delay(game.dealAnimation[card.id] ?? 0)) {
-                            _ = stackedCards.insert(card.id)
-                        }
-                    }
-            }
-        }
-        .frame(idealHeight: 60, maxHeight: 100)
-        .zIndex(99999)
-    }
-    
-    private var shuffle: some View {
-        Button("mix up") {
-            withAnimation(.easeInOut(duration: Style.tick)) {
-                game.shuffle()
-            }
-        }
-    }
-
-    @State private var goodCardIds: [Int] = []
-    
-    private var showHint: some View {
-        Button("hint") {
-            let choices = game.suggestions().shuffled()
-            for card in choices {
-                let delay = Double.random(in: 0.0 ... Style.tick / 3 * Double(choices.count))
-                withAnimation(.linear(duration: Style.tick).delay(delay)) {
-                    goodCardIds.append(card)
-                }
-                withAnimation(.linear(duration: 0.001).delay(delay + Style.tick * 1/4)) {
-                    if let index = goodCardIds.firstIndex(of: card) {
-                        goodCardIds.remove(at: index)
+                .onDisappear {
+                    dealtCardIds.insert(card.id)
+                    withAnimation(setTick .delay(game.dealAnimation[card.id, default: 0])) {
+                        _ = dealtCardIds.remove(card.id)
                     }
                 }
-            }
+                .padding(paddingForCardsInPlay(cards.count))
         }
+        .padding(paddingForCardsInPlay(cards.count))
     }
+
+    // MARK: -- Bottom bar card piles and buttons
+    
     private var decks: some View {
         HStack {
             Spacer()
             let discarded = game.cards.filter { $0.isDiscarded }
             if discarded.count > 0 {
-                cardPile(discarded, orientation: Style.discardRotation)
+                cardPile(discarded, pile: Style.discard)
                     .onTapGesture {
-                        withAnimation(.easeInOut(duration: Style.tick)) {
-                            game.shuffle()
-                        }
+                        withAnimation(setTick) { game.shuffle() }
                     }
             } else {
-                shuffle
+                scramble
             }
             Spacer()
-            cardPile(game.cards.filter { $0.isUndealt }, orientation: Style.deckRotation)
+            cardPile(game.cards.filter { $0.isUndealt }, pile: Style.deck)
                 .onTapGesture() {
                     if !game.isMatchedSet {
-                        withAnimation(.easeInOut(duration: Style.tick * 2/3)) {
-                            minCapacity = max(12, game.cards.filter { $0.isInPlay }.count + 3)
+                        withAnimation(.easeInOut(duration: activeSpeed * 0.6)) {
+                            minCapacity = max(game.cardsToDeal, game.cards.filter { $0.isInPlay }.count + 3)
                         }
                     }
-                    withAnimation(.easeInOut(duration: Style.tick)) {
+                    withAnimation(setTick) {
                         game.deal(game.isMatchedSet ? 0 : 3)
                     }
                 }
@@ -196,33 +160,59 @@ struct StdSetGameView: View {
         .background(.background)
     }
     
+    private func cardPile(_ cards: [SetCard], pile: StackOrientation) -> some View {
+        MessyZStack(cards, pile: pile) { card in
+            StdCardView(card, faceColor: faceColor(for: card))
+                .matchedGeometryEffect(id: card.id, in: dealingNamespace)
+                .zIndex(zIndex(for: card) * (card.isFaceUp ? -1 : 1))
+                .foregroundColor(highlightColor(for: card))
+        }
+        .frame(idealHeight: 60, maxHeight: 100)
+    }
+    
+    private var scramble: some View {
+        Button(cardsInPlay.count > 0 ? "scramble" : "") {
+            withAnimation(setTick) { game.shuffle() }
+        }
+    }
+
+    @State private var goodCardIds: [Int] = []
+    
+    private var showHint: some View {
+        Button("hint") {
+            let choices = game.suggestions().shuffled()
+            for cardId in choices {
+                let delay = Double.random(in: 0.0 ... activeSpeed / 3 * Double(choices.count))
+                withAnimation(.linear(duration: activeSpeed).delay(delay)) {
+                    goodCardIds.append(cardId)
+                }
+                withAnimation(.linear(duration: 0.01).delay(delay + activeSpeed * 1/4)) {
+                    if let index = goodCardIds.firstIndex(of: cardId) {
+                        goodCardIds.remove(at: index)
+                    }
+                }
+            }
+        }
+    }
+
+    
     private var gameOver: some View {
         VStack {
             Text("SHALL  WE  PLAY  A  GAME?")
                 .fontWeight(.light)
                 .font(.title2)
-                .onTapGesture {
-                    withAnimation(.easeInOut(duration: Style.tick)) {
-                        game.newGame()
-                    }
-                }
-            Text("peace").cardify(isFaceUp: false)
-                .frame(maxWidth: 120)
-                .rotationEffect(Angle(degrees: -90))
-                .onTapGesture {
-                    withAnimation(.easeInOut(duration: Style.tick)) {
-                        game.newGame()
-                    }
-                }
+                .padding()
+                .onTapGesture { withAnimation(setTick) { game.newGame() } }
+                
             Text("""
                 Stanford CS193P SwiftUI assignment.
                 
-                Geneticist Marsha Jean Falco invented SET in 1974. You can buy the real card game from Set Enterprises Inc.  This demo necessarily borrows their ideas without asking, and shamelessly mimics their designs without consent.  It's an homage.
+                Geneticist Marsha Jean Falco invented SET in 1974. You can buy the real card game from Set Enterprises Inc.  This demo necessarily borrows their ideas without asking, and shamelessly mimics their designs without consent.  Think of this as an homage.
                 
                 Demo - Not for sale.
                 """)
                 .font(.body)
-                .padding(.horizontal)
+                .padding()
             Spacer()
         }
     }
@@ -247,41 +237,11 @@ struct StdSetGameView: View {
     }
 }
 
-extension View {
-    // TODO: Shouldn't messyStackEffect be a GeometryEffect??
-    /**
-     Nudge the view randomly moving it horizontally, vertically, and rotationally
-     
-     - Parameter rotation: normal center of rotation
-     - Parameter maxSlide: max movement in  x and y direction
-     - Parameter maxRotate: maximum rotation (degrees)
-     
-    Uses drand48(), which seeded with each card's id will keep cards messy-but-stable.
-     ```
-     // Example use:
-     srand48(card.id) // attach a fixed the jitter to each unique item
-     ...
-     cardView.messyStackEffect(card.id)
-     ```
-     */
-    func messyStackEffect(_ isEnabled: Bool,
-                          orientation: Double = 0,
-                          maxSlide: Double = Style.deckSlide,
-                          maxRotate: Double = Style.deckSlip) -> some View {
-        let angle = Angle.degrees(orientation) + Angle(degrees: (drand48() - 0.5) * 2 * maxRotate)
-        let x = CGFloat((drand48() - 0.5) * 2 * maxSlide)
-        let y =  CGFloat((drand48() - 0.5) * 2 * maxSlide)
-        return self
-            .rotationEffect(isEnabled ? angle : Angle.zero)
-            .offset(x: isEnabled ? x : 0, y: isEnabled ? y : 0)
-    }
-}
-
 struct SetGameView_Previews: PreviewProvider {
     static var newGame: StdSetGame {
         let game = StdSetGame()
-        withAnimation(.easeInOut(duration: Style.tick)) {
-            for _ in 1...12 {
+        withAnimation(.easeInOut(duration: game.clock)) {
+            for _ in 1...game.minimumCardsToShow {
                 game.deal()
             }
         }

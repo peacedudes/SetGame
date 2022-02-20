@@ -51,7 +51,7 @@ extension SetGame {
                 "in the bag",
                 "just like that",
                 "low hanging fruit",
-                "Magnificant!",
+                "Magnificent!",
                 "nailed it",
                 "nicely done",
                 "perfect",
@@ -67,9 +67,9 @@ extension SetGame {
                 "awww, that's too bad",
                 "back to the drawing board",
                 "close, but no cigar",
+                "Crivens!",
                 "dang nabbit!",
                 "Fudge!",
-                "Game Over, Man!",
                 "Hang in there",
                 "He's dead Jim",
                 "How do you like them apples?",
@@ -84,6 +84,7 @@ extension SetGame {
                 "shoots... and misses",
                 "son of a bitcoin",
                 "that didn't work",
+                "Waily, Waily, Waily!",
             ],
             .matchable: [
                 "good",
@@ -99,17 +100,17 @@ extension SetGame {
                 "I smell a rat",
                 "no",
                 "nope",
-                "Oh Dear, no.",
+                "Oh dear, no.",
                 "that's going to cost you",
                 "try again",
-                "you sure?",
+                "are you sure?",
                 "you're in a bit of a pickle",
             ]
         ]
         let result = outcome
-        guard result != .none else {
-            return hasPlayableMatch([]) ? nil :
-            nextUndealtCard == nil ? "the game is over" : "This could be difficult..."
+        guard result != .none else { return hasPlayableMatch([]) ? nil :
+            isDeckEmpty ? ["Game overmaan.", "the game is over"].randomElement() :
+            "This could be difficult..."
         }
         return responses[outcome]?.randomElement()
     }

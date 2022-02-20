@@ -11,7 +11,7 @@ struct StdCardView: View {
     let card: SetCard
     let faceColor: Color
 
-    init(card: SetCard, faceColor: Color = Color("cardFace")) {
+    init(_ card: SetCard, faceColor: Color = Color("cardFace")) {
         self.card = card
         self.faceColor = faceColor
     }
@@ -74,33 +74,33 @@ struct StandardCardView_Previews: PreviewProvider {
         Group {
             VStack {
                 HStack {
-                    StdCardView(card: SetCard(id: 1))
-                    StdCardView(card: SetCard(id: 32, isFaceUp: true))
-                    StdCardView(card: SetCard(id: 60, isFaceUp: true))
-                    StdCardView(card: SetCard(id: 79, isFaceUp: true))
-                    StdCardView(card: SetCard(id: 75, isFaceUp: true))
-                    StdCardView(card: SetCard(id: 77))
+                    StdCardView(SetCard(id: 1))
+                    StdCardView(SetCard(id: 32, isFaceUp: true))
+                    StdCardView(SetCard(id: 60, isFaceUp: true))
+                    StdCardView(SetCard(id: 79, isFaceUp: true))
+                    StdCardView(SetCard(id: 75, isFaceUp: true))
+                    StdCardView(SetCard(id: 77))
                 }
                 HStack {
-                    StdCardView(card: SetCard(id: 55, isFaceUp: true))
-                    StdCardView(card: SetCard(id: 34))
-                    StdCardView(card: SetCard(id: 81, isFaceUp: true))
+                    StdCardView(SetCard(id: 55, isFaceUp: true))
+                    StdCardView(SetCard(id: 34))
+                    StdCardView(SetCard(id: 81, isFaceUp: true))
                 }
             }
             .preferredColorScheme(.dark)
             VStack {
                 HStack {
-                    StdCardView(card: SetCard(id: 1))
-                    StdCardView(card: SetCard(id: 32, isFaceUp: true))
-                    StdCardView(card: SetCard(id: 60, isFaceUp: true))
-                    StdCardView(card: SetCard(id: 79, isFaceUp: true))
-                    StdCardView(card: SetCard(id: 75, isFaceUp: true))
-                    StdCardView(card: SetCard(id: 77))
+                    StdCardView(SetCard(id: 1))
+                    StdCardView(SetCard(id: 32, isFaceUp: true))
+                    StdCardView(SetCard(id: 60, isFaceUp: true))
+                    StdCardView(SetCard(id: 79, isFaceUp: true))
+                    StdCardView(SetCard(id: 75, isFaceUp: true))
+                    StdCardView(SetCard(id: 77))
                 }
                 HStack {
-                    StdCardView(card: SetCard(id: 55, isFaceUp: true))
-                    StdCardView(card: SetCard(id: 34))
-                    StdCardView(card: SetCard(id: 81, isFaceUp: true))
+                    StdCardView(SetCard(id: 55, isFaceUp: true))
+                    StdCardView(SetCard(id: 34))
+                    StdCardView(SetCard(id: 81, isFaceUp: true))
                 }
             }
         }

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		7E49C22627AD26F10056C5D2 /* Style.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E49C22527AD26F10056C5D2 /* Style.swift */; };
 		7E50D988276CB5BC002B4F55 /* Voice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E50D987276CB5BC002B4F55 /* Voice.swift */; };
+		7E77134627BF858300E05C27 /* MessyZStack.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E77134527BF858300E05C27 /* MessyZStack.swift */; };
 		7EE0C4222779D79F00E7790E /* ColoredShapeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EE0C4212779D79F00E7790E /* ColoredShapeView.swift */; };
 		7EF17CDD27AAA169004F18A7 /* SetCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EF17CDC27AAA169004F18A7 /* SetCard.swift */; };
 		7EF2FDFF2759FBB900C4A35F /* SetGame2App.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EF2FDFE2759FBB900C4A35F /* SetGame2App.swift */; };
@@ -44,8 +45,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		7E1AC90E27BE7C6900970C9D /* assignment_4_0.pdf */ = {isa = PBXFileReference; lastKnownFileType = image.pdf; path = assignment_4_0.pdf; sourceTree = "<group>"; };
 		7E49C22527AD26F10056C5D2 /* Style.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Style.swift; sourceTree = "<group>"; };
 		7E50D987276CB5BC002B4F55 /* Voice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Voice.swift; sourceTree = "<group>"; };
+		7E77134527BF858300E05C27 /* MessyZStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessyZStack.swift; sourceTree = "<group>"; };
 		7EE0C4212779D79F00E7790E /* ColoredShapeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColoredShapeView.swift; sourceTree = "<group>"; };
 		7EF17CDC27AAA169004F18A7 /* SetCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetCard.swift; sourceTree = "<group>"; };
 		7EF2FDFB2759FBB900C4A35F /* SetGame2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SetGame2.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -115,16 +118,18 @@
 			isa = PBXGroup;
 			children = (
 				7EF2FE282759FBF700C4A35F /* AspectVGrid.swift */,
+				7E1AC90E27BE7C6900970C9D /* assignment_4_0.pdf */,
 				7EF2FE2A2759FCA300C4A35F /* Cardify.swift */,
+				7E77134527BF858300E05C27 /* MessyZStack.swift */,
 				7EF17CDC27AAA169004F18A7 /* SetCard.swift */,
 				7EF2FE2C2759FDDD00C4A35F /* SetGame.swift */,
 				7EF2FDFE2759FBB900C4A35F /* SetGame2App.swift */,
+				7EF2FE38275A08B700C4A35F /* Shapes */,
 				7EF2FE3F275CB22600C4A35F /* StdCardView.swift */,
 				7EF2FE2E2759FE2700C4A35F /* StdSetGame.swift */,
 				7EF2FE002759FBB900C4A35F /* StdSetGameView.swift */,
 				7E49C22527AD26F10056C5D2 /* Style.swift */,
 				7E50D987276CB5BC002B4F55 /* Voice.swift */,
-				7EF2FE38275A08B700C4A35F /* Shapes */,
 				7EF2FE022759FBBA00C4A35F /* Assets.xcassets */,
 				7EF2FE042759FBBA00C4A35F /* Preview Content */,
 			);
@@ -299,6 +304,7 @@
 				7EF2FE2B2759FCA300C4A35F /* Cardify.swift in Sources */,
 				7EE0C4222779D79F00E7790E /* ColoredShapeView.swift in Sources */,
 				7EF2FE2D2759FDDD00C4A35F /* SetGame.swift in Sources */,
+				7E77134627BF858300E05C27 /* MessyZStack.swift in Sources */,
 				7EF2FE40275CB22600C4A35F /* StdCardView.swift in Sources */,
 				7EF2FDFF2759FBB900C4A35F /* SetGame2App.swift in Sources */,
 				7EF2FE292759FBF700C4A35F /* AspectVGrid.swift in Sources */,
