@@ -49,6 +49,7 @@
 		7E49C22527AD26F10056C5D2 /* Style.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Style.swift; sourceTree = "<group>"; };
 		7E50D987276CB5BC002B4F55 /* Voice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Voice.swift; sourceTree = "<group>"; };
 		7E77134527BF858300E05C27 /* MessyZStack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessyZStack.swift; sourceTree = "<group>"; };
+		7E77134727C369BA00E05C27 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		7EE0C4212779D79F00E7790E /* ColoredShapeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColoredShapeView.swift; sourceTree = "<group>"; };
 		7EF17CDC27AAA169004F18A7 /* SetCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetCard.swift; sourceTree = "<group>"; };
 		7EF2FDFB2759FBB900C4A35F /* SetGame2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SetGame2.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -120,6 +121,7 @@
 				7EF2FE282759FBF700C4A35F /* AspectVGrid.swift */,
 				7E1AC90E27BE7C6900970C9D /* assignment_4_0.pdf */,
 				7EF2FE2A2759FCA300C4A35F /* Cardify.swift */,
+				7E77134727C369BA00E05C27 /* README.md */,
 				7E77134527BF858300E05C27 /* MessyZStack.swift */,
 				7EF17CDC27AAA169004F18A7 /* SetCard.swift */,
 				7EF2FE2C2759FDDD00C4A35F /* SetGame.swift */,

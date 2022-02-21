@@ -186,7 +186,7 @@ struct StdSetGameView: View {
                 withAnimation(.linear(duration: activeSpeed).delay(delay)) {
                     goodCardIds.append(cardId)
                 }
-                withAnimation(.linear(duration: 0.01).delay(delay + activeSpeed * 1/4)) {
+                withAnimation(.linear(duration: 0.3).delay(delay + activeSpeed * 1/4)) {
                     if let index = goodCardIds.firstIndex(of: cardId) {
                         goodCardIds.remove(at: index)
                     }

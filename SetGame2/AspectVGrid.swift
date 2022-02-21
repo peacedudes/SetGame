@@ -70,15 +70,10 @@ struct AspectVGrid<Item, ItemView>: View where ItemView: View, Item: Identifiabl
     }
 }
 
-//struct AspectVGrid_Previews: PreviewProvider {
-//    static var previews: some View {
-//        AspectVGrid()
-//    }
-//}
-
-
-
 #else
+// THis is where I attempted to rewrite the code in a different, non-looping way.
+// It didn't quite work as well, but maybe some day I'll revisit this and see why.
+
 struct AspectVGrid<Item: Identifiable, ItemView: View>: View {
     var items: [Item]
     var aspectRatio: CGFloat
