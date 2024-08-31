@@ -45,11 +45,11 @@ extension SetCard : View {
 
     var body: some View {
         GeometryReader { geometry in
+            let maxWidth = geometry.size.height / 3 / Style.cardAspectRatio
             VStack(spacing: 2) {
                 Spacer(minLength: 2)
-                ForEach(0..<number + 1) { _ in
-                    shapeView
-                        .frame(maxWidth: geometry.size.height / 3 / Style.cardAspectRatio)
+                ForEach(0 ..< number + 1, id: \.self) { _ in
+                    shapeView.frame(maxWidth: maxWidth)
                 }
                 Spacer(minLength: 2)
             }

@@ -224,7 +224,7 @@ class StdSetGame: ObservableObject {
     }
     
     @Published private(set) var pace = 0
-    private var pacing: Double { pace == 0 ? 1 : 5 }
+    private var pacing: Double { pace == 0 ? 1 : 3 }
     var clock: Double { Style.tick * pacing }
     func toggleSpeed() {
         pace = (pace + 1) % 2

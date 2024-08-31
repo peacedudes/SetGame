@@ -12,7 +12,8 @@ import AVFoundation
 struct Voice {
     // TODO: Make language or voices choosable or localizable
     /// The preferred local voices available for speech synthesis
-    static let local = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.prefix(3) == "en-" }
+    static let local = AVSpeechSynthesisVoice.speechVoices()
+        .filter { $0.language.prefix(3) == "en-" }
 
     // a named voice, if it exists
     static func named(_ name: String) -> AVSpeechSynthesisVoice? {

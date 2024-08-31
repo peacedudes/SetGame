@@ -13,6 +13,7 @@ struct StdSetGameView: View {
     @Namespace private var dealingNamespace
     var cardsInPlay: [SetCard] { game.cards.filter { $0.isInPlay } }
     var activeSpeed: Double { game.clock }
+
     var setTick: Animation { .easeInOut(duration: activeSpeed) }
     
     var body: some View {
@@ -49,12 +50,15 @@ struct StdSetGameView: View {
                     }
                 }
                 Spacer()
-                Button(action: withAnimation(setTick) { game.toggleSpeed },
+                // TODO: How to animate this??
+//                Button(action: withAnimation(setTick) { game.toggleSpeed },
+                Button(action: game.toggleSpeed,
                        label: { Image(systemName: speedIcon).font(.system(size: 20)) })
                 Spacer()
                 Text("\(game.score)")
                 Spacer()
-                Button(action: withAnimation(setTick) { game.toggleHint },
+//                Button(action: withAnimation(setTick) { game.toggleHint },
+                Button(action: game.toggleHint,
                        label: { Image(systemName: soundIcon).font(.system(size: 28)) })
             }
             .font(.title2)

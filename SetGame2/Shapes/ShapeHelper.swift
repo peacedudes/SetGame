@@ -55,7 +55,7 @@ func diamond() -> some Shape {
 }
 
 func tilde() -> some Shape {
-    ScaledBezier(bezierPath: .tilde)
+    ScaledBezier(path: Path(UIBezierPath.tilde.cgPath))
 }
 
 func oval() -> some Shape {
@@ -95,10 +95,11 @@ extension UIBezierPath {
 struct ScaledBezier: Shape {
     // https://www.hackingwithswift.com/quick-start/swiftui/how-to-use-uibezierpath-and-cgpath-in-swiftui
     // modified to take arbitrary sized svg images; not just unit sized ones
-    let bezierPath: UIBezierPath
+//    let bezierPath: UIBezierPath
+    let path: Path
 
     func path(in rect: CGRect) -> Path {
-        let path = Path(bezierPath.cgPath)
+//        let path = Path(bezierPath.cgPath)
         let drawnRect = path.boundingRect
         
         /// How much to resize path to fill space without clipping
